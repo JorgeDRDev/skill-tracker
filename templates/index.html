@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Checklist & Habit Tracker</title>
+    
+    <!-- CSS Framework: Custom styles for clean, modern look -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    
+    <!-- Meta information for better SEO -->
+    <meta name="description" content="Track your learning progress with skills and study habits">
+    <meta name="author" content="Skill Tracker App">
+</head>
+<body>
+    <!-- 
+    Application Structure:
+    - Header: Title and navigation
+    - Main dashboard: Statistics overview
+    - Skills section: Skill management
+    - Study logs section: Study session tracking
+    - Footer: Additional information
+    
+    Design decisions:
+    - Single-page app with sections that can be shown/hidden
+    - Semantic HTML for accessibility
+    - ARIA labels for screen readers
+    - Form validation with HTML5 and JavaScript
+    -->
+    
+    <div class="app-container">
+        <!-- Header Section -->
+        <header class="app-header">
+            <h1 class="app-title">📚 Skill Tracker</h1>
+            <nav class="app-nav">
+                <button class="nav-btn active" data-section="dashboard">Dashboard</button>
+                <button class="nav-btn" data-section="skills">Skills</button>
+                <button class="nav-btn" data-section="logs">Study Logs</button>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="app-main">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="app-section active">
+                <h2>📊 Your Learning Dashboard</h2>
+                
+                <!-- Statistics Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="daily-streak">-</div>
+                        <div class="stat-label">Day Streak</div>
+                        <div class="stat-icon">🔥</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number" id="weekly-hours">-</div>
+                        <div class="stat-label">Hours This Week</div>
+                        <div class="stat-icon">⏱️</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number" id="monthly-hours">-</div>
+                        <div class="stat-label">Hours This Month</div>
+                        <div class="stat-icon">📅</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number" id="skills-learned">-</div>
+                        <div class="stat-label">Skills Learned</div>
+                        <div class="stat-icon">✅</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="recent-activity">
+                    <h3>📈 Recent Activity</h3>
+                    <div id="recent-activity-list" class="activity-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Skills Section -->
+            <section id="skills" class="app-section">
+                <div class="section-header">
+                    <h2>🎯 Your Skills</h2>
+                    <button class="btn btn-primary" id="add-skill-btn">+ Add Skill</button>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="filter-controls">
+                    <select id="category-filter" class="filter-select">
+                        <option value="">All Categories</option>
+                        <!-- Populated dynamically -->
+                    </select>
+                    
+                    <select id="status-filter" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="To Learn">To Learn</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Learned">Learned</option>
+                    </select>
+                </div>
+
+                <!-- Skills List -->
+                <div id="skills-container" class="skills-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <!-- Add Skill Modal -->
+                <div id="skill-modal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="skill-modal-title">Add New Skill</h3>
+                            <span class="close" id="close-skill-modal">&times;</span>
+                        </div>
+                        <form id="skill-form" class="modal-form">
+                            <div class="form-group">
+                                <label for="skill-name">Skill Name *</label>
+                                <input type="text" id="skill-name" name="name" required maxlength="200">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="skill-category">Category</label>
+                                <input type="text" id="skill-category" name="category" maxlength="100" 
+                                       placeholder="e.g., Frontend, Backend, DevOps">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="skill-status">Status</label>
+                                <select id="skill-status" name="status">
+                                    <option value="To Learn">To Learn</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Learned">Learned</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" id="cancel-skill">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Skill</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Study Logs Section -->
+            <section id="logs" class="app-section">
+                <div class="section-header">
+                    <h2>📝 Study Logs</h2>
+                    <button class="btn btn-primary" id="add-log-btn">+ Log Study Session</button>
+                </div>
+
+                <!-- Study Logs List -->
+                <div id="logs-container" class="logs-list">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <!-- Add Study Log Modal -->
+                <div id="log-modal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Log Study Session</h3>
+                            <span class="close" id="close-log-modal">&times;</span>
+                        </div>
+                        <form id="log-form" class="modal-form">
+                            <div class="form-group">
+                                <label for="log-date">Date *</label>
+                                <input type="date" id="log-date" name="date" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="log-hours">Hours Studied *</label>
+                                <input type="number" id="log-hours" name="hours" required 
+                                       min="0.1" max="24" step="0.1" placeholder="2.5">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="log-skills">Skills Studied</label>
+                                <div id="skill-checkboxes" class="checkbox-group">
+                                    <!-- Populated dynamically with available skills -->
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="log-notes">Notes</label>
+                                <textarea id="log-notes" name="notes" rows="3" 
+                                         placeholder="What did you learn or accomplish?"></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" id="cancel-log">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Log</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Built with Flask + Vanilla JavaScript • <a href="/api/stats" target="_blank">API Status</a></p>
+        </footer>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="spinner-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container">
+        <!-- Toast messages will be inserted here -->
+    </div>
+
+    <!-- JavaScript Application -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
