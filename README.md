@@ -366,4 +366,43 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-**Built with ❤️ for learning and productivity**
+Dark Mode Implementation
+
+1. CSS Variables Architecture (styles.css):
+•  Lines 37-44: Added theme-aware CSS custom properties (variables) for colors
+•  Lines 72-82: Created dark theme override variables using [data-theme="dark"] selector
+•  Updated throughout: Replaced hardcoded color references with theme-aware variables
+2. Theme Toggle Button (index.html):
+•  Lines 34-36: Added theme toggle button in the header with moon/sun icon
+3. JavaScript Theme Management (main.js):
+•  Lines 399-448: Added ThemeManager module for handling theme logic
+•  Line 456: Initialize theme management in App.init()
+•  Line 485: Added event listener for the theme toggle button
+4. Theme Toggle Styles (styles.css):
+•  Lines 811-838: Added CSS for the floating theme toggle button
+
+How It Works:
+
+1. Theme Detection: Automatically detects user's system preference (light/dark) on first visit
+2. Manual Toggle: Users can click the moon/sun icon in the top-right to toggle themes
+3. Persistence: Theme preference is saved in localStorage and remembered across sessions
+4. Smooth Transitions: All elements smoothly animate when switching themes
+5. System Integration: Listens for system theme changes and updates automatically (unless user has manually set a preference)
+
+
+Key Features:
+
+✅ Complete Theme Coverage: All UI elements (cards, modals, forms, buttons) adapt to theme
+✅ User-Friendly Toggle: Prominent, accessible theme toggle button with visual feedback
+✅ Smart Detection: Respects system preference initially
+✅ Persistent Storage: Remembers user's choice between sessions
+✅ Smooth Animations: Elegant transitions between themes
+✅ High Contrast: Both themes maintain excellent readability and accessibility
+✅ Mobile Responsive: Theme toggle works perfectly on all screen sizes
+
+Visual Changes:
+
+•  Light Mode: Clean, bright interface with white/light gray backgrounds
+•  Dark Mode: Professional dark interface with dark blue/slate backgrounds
+•  Theme Toggle: Moon icon for light mode, sun icon for dark mode
+•  Interactive Feedback: Button scales and shows toast notification when toggled

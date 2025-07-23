@@ -396,6 +396,59 @@ const UI = {
     }
 };
 
+// === THEME MANAGEMENT ===
+// Handles dark/light theme switching
+const ThemeManager = {
+    // Get current theme from localStorage or system preference
+    getCurrentTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            return savedTheme;
+        }
+        
+        // Check system preference
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return systemPrefersDark ? 'dark' : 'light';
+    },
+    
+    // Apply theme to document
+    applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        
+        // Update theme toggle icon
+        const themeIcon = document.querySelector('.theme-icon');
+        if (themeIcon) {
+            themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+    },
+    
+    // Toggle between light and dark themes
+    toggleTheme() {
+        const currentTheme = this.getCurrentTheme();
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.applyTheme(newTheme);
+        
+        // Show feedback to user
+        UI.showToast(`Switched to ${newTheme} mode`, 'info');
+    },
+    
+    // Initialize theme on page load
+    init() {
+        const theme = this.getCurrentTheme();
+        this.applyTheme(theme);
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            // Only auto-switch if user hasn't manually set a preference
+            if (!localStorage.getItem('theme')) {
+                const newTheme = e.matches ? 'dark' : 'light';
+                this.applyTheme(newTheme);
+            }
+        });
+    }
+};
+
 // === MAIN APPLICATION ===
 // Coordinates all application logic and handles events
 const App = {
@@ -405,6 +458,7 @@ const App = {
     init() {
         this.bindEvents();
         this.setDefaultDate();
+        ThemeManager.init(); // Initialize theme management
         UI.showSection('dashboard'); // Start with dashboard
     },
     
@@ -427,6 +481,9 @@ const App = {
         // Filter changes
         document.getElementById('category-filter').addEventListener('change', () => UI.loadSkills());
         document.getElementById('status-filter').addEventListener('change', () => UI.loadSkills());
+        
+        // Theme toggle
+        document.getElementById('theme-toggle').addEventListener('click', () => ThemeManager.toggleTheme());
     },
     
     bindModalEvents() {
