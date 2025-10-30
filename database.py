@@ -14,7 +14,7 @@ Design Decisions:
 
 import os
 from models import db, Skill, StudyLog, SkillStatus
-from datetime import date, datetime
+from datetime import datetime
 
 def init_database(app):
     """
@@ -89,19 +89,19 @@ def seed_sample_data(app):
         
         sample_logs = [
             StudyLog(
-                date=date(2024, 7, 20),
+                date=datetime(2024, 7, 20, 14, 30),
                 hours=2.5,
                 notes="Started Flask tutorial, learned about routes and templates",
                 skills=[flask_skill]
             ),
             StudyLog(
-                date=date(2024, 7, 21),
+                date=datetime(2024, 7, 21, 10, 15),
                 hours=1.5,
                 notes="Practiced JavaScript DOM manipulation",
                 skills=[js_skill]
             ),
             StudyLog(
-                date=date(2024, 7, 22),
+                date=datetime(2024, 7, 22, 16, 45),
                 hours=3.0,
                 notes="Worked on Flask app and styled with CSS Grid",
                 skills=[flask_skill, css_skill]

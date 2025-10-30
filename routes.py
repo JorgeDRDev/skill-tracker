@@ -244,6 +244,8 @@ def create_study_log():
     
     Returns:
         JSON object of the created study log
+    
+    Note: The date field is combined with current time to create a datetime.
     """
     try:
         data = request.get_json()
@@ -258,15 +260,17 @@ def create_study_log():
         if not data.get('hours') or data.get('hours') <= 0:
             return jsonify({'error': 'Hours must be a positive number'}), 400
         
-        # Parse date
+        # Parse date and combine with current time
         try:
-            log_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            date_part = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            # Combine the date with current time
+            log_datetime = datetime.combine(date_part, datetime.now().time())
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
         
         # Create study log
         study_log = StudyLog(
-            date=log_date,
+            date=log_datetime,
             hours=float(data['hours']),
             notes=data.get('notes', '').strip() or None
         )

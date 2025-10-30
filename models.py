@@ -71,13 +71,13 @@ class StudyLog(db.Model):
     
     Attributes:
         id: Primary key
-        date: Date of study session
+        date: DateTime of study session (includes date and time)
         hours: Number of hours studied (can be fractional, e.g., 1.5)
         notes: Optional notes about what was accomplished
         created_at: When the log entry was created
     """
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
     hours = db.Column(db.Float, nullable=False)  # Allow fractional hours like 1.5
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)

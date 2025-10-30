@@ -20,11 +20,13 @@
 // Handles all communication with the Flask backend
 const API = {
     baseUrl: '/api',
+    loadingCounter: 0,
+    loadingTimeout: null,
     
     // Generic fetch wrapper with error handling
     async request(endpoint, options = {}) {
         try {
-            UI.showLoading(true);
+            UI.showGlobalLoading(true);
             
             const config = {
                 headers: {
@@ -47,7 +49,7 @@ const API = {
             UI.showToast(`Error: ${error.message}`, 'error');
             throw error;
         } finally {
-            UI.showLoading(false);
+            UI.showGlobalLoading(false);
         }
     },
 
@@ -159,9 +161,13 @@ const UI = {
     // Dashboard rendering
     async loadDashboard() {
         try {
+            // Show skeleton loading for stats
+            this.showStatsSkeleton(true);
+            
             const stats = await API.getStats();
             
-            // Update stat cards
+            // Hide skeleton and update stat cards
+            this.showStatsSkeleton(false);
             document.getElementById('daily-streak').textContent = stats.daily_streak;
             document.getElementById('weekly-hours').textContent = stats.weekly_hours.toFixed(1);
             document.getElementById('monthly-hours').textContent = stats.monthly_hours.toFixed(1);
@@ -171,6 +177,19 @@ const UI = {
             this.renderRecentActivity(stats.recent_activity);
         } catch (error) {
             console.error('Error loading dashboard:', error);
+            this.showStatsSkeleton(false);
+        }
+    },
+    
+    showStatsSkeleton(show) {
+        const statsGrid = document.querySelector('.stats-grid');
+        if (show) {
+            statsGrid.innerHTML = Array(4).fill(0).map(() => `
+                <div class="skeleton-stat-card" role="status" aria-busy="true" aria-label="Loading statistics">
+                    <div class="skeleton skeleton-stat-number"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+            `).join('');
         }
     },
     
@@ -178,7 +197,22 @@ const UI = {
         const container = document.getElementById('recent-activity-list');
         
         if (!activities || activities.length === 0) {
-            container.innerHTML = '<p class="activity-item">No recent study activity</p>';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <div class="empty-icon-calendar">
+                            <div class="calendar-dots">
+                                <div class="calendar-dot"></div>
+                                <div class="calendar-dot"></div>
+                                <div class="calendar-dot"></div>
+                                <div class="calendar-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="empty-state-title">No Recent Activity</h3>
+                    <p class="empty-state-description">Start logging your study sessions to see your recent activity here.</p>
+                </div>
+            `;
             return;
         }
         
@@ -195,13 +229,33 @@ const UI = {
     // Skills rendering
     async loadSkills() {
         try {
+            // Show skeleton loading
+            this.showSkillsSkeleton(true);
+            
             const filters = this.getSkillFilters();
             const skills = await API.skills.getAll(filters);
             
-            this.renderSkills(skills);
+            this.renderSkills(skills, filters);
             this.updateCategoryFilter(skills);
         } catch (error) {
             console.error('Error loading skills:', error);
+            this.showSkillsSkeleton(false);
+        }
+    },
+    
+    showSkillsSkeleton(show) {
+        const container = document.getElementById('skills-container');
+        if (show) {
+            container.innerHTML = Array(3).fill(0).map(() => `
+                <div class="skeleton-skill-card" role="status" aria-busy="true" aria-label="Loading skills">
+                    <div class="skeleton-skill-header">
+                        <div class="skeleton skeleton-skill-name"></div>
+                        <div class="skeleton skeleton-skill-actions"></div>
+                    </div>
+                    <div class="skeleton skeleton-skill-category"></div>
+                    <div class="skeleton skeleton-skill-status"></div>
+                </div>
+            `).join('');
         }
     },
     
@@ -216,15 +270,37 @@ const UI = {
         return filters;
     },
     
-    renderSkills(skills) {
+    renderSkills(skills, filters = {}) {
         const container = document.getElementById('skills-container');
         
         if (!skills || skills.length === 0) {
-            container.innerHTML = `
-                <div class="skill-card">
-                    <p>No skills found. Add your first skill to get started!</p>
-                </div>
-            `;
+            // Check if filters are applied
+            const hasFilters = filters.category || filters.status;
+            
+            if (hasFilters) {
+                // No results for filter
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <div class="empty-icon-search"></div>
+                        </div>
+                        <h3 class="empty-state-title">No Matches Found</h3>
+                        <p class="empty-state-description">Try adjusting your filters to see more results.</p>
+                    </div>
+                `;
+            } else {
+                // No skills at all
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <div class="empty-icon-book"></div>
+                        </div>
+                        <h3 class="empty-state-title">Start Your Learning Journey</h3>
+                        <p class="empty-state-description">Add your first skill to begin tracking your progress and building your expertise.</p>
+                        <button class="btn btn-primary empty-state-cta" onclick="document.getElementById('add-skill-btn').click()">+ Add Your First Skill</button>
+                    </div>
+                `;
+            }
             return;
         }
         
@@ -233,8 +309,8 @@ const UI = {
                 <div class="skill-header">
                     <h3 class="skill-name">${this.escapeHtml(skill.name)}</h3>
                     <div class="skill-actions">
-                        <button onclick="App.editSkill(${skill.id})" title="Edit skill">✏️</button>
-                        <button onclick="App.deleteSkill(${skill.id})" title="Delete skill">🗑️</button>
+                        <button onclick="App.editSkill(${skill.id})" title="Edit skill" aria-label="Edit ${this.escapeHtml(skill.name)}">✏️</button>
+                        <button onclick="App.deleteSkill(${skill.id})" title="Delete skill" aria-label="Delete ${this.escapeHtml(skill.name)}">🗑️</button>
                     </div>
                 </div>
                 
@@ -267,10 +343,34 @@ const UI = {
     // Study logs rendering
     async loadLogs() {
         try {
+            // Show skeleton loading
+            this.showLogsSkeleton(true);
+            
             const logs = await API.logs.getAll({ limit: 20 });
             this.renderLogs(logs);
         } catch (error) {
             console.error('Error loading logs:', error);
+            this.showLogsSkeleton(false);
+        }
+    },
+    
+    showLogsSkeleton(show) {
+        const container = document.getElementById('logs-container');
+        if (show) {
+            container.innerHTML = Array(5).fill(0).map(() => `
+                <div class="skeleton-log-card" role="status" aria-busy="true" aria-label="Loading study logs">
+                    <div class="skeleton-log-header">
+                        <div class="skeleton skeleton-log-date"></div>
+                        <div class="skeleton skeleton-log-hours"></div>
+                    </div>
+                    <div class="skeleton-log-skills">
+                        <div class="skeleton skeleton-log-skill-tag"></div>
+                        <div class="skeleton skeleton-log-skill-tag"></div>
+                    </div>
+                    <div class="skeleton skeleton-log-notes"></div>
+                    <div class="skeleton skeleton-log-actions"></div>
+                </div>
+            `).join('');
         }
     },
     
@@ -279,8 +379,20 @@ const UI = {
         
         if (!logs || logs.length === 0) {
             container.innerHTML = `
-                <div class="log-card">
-                    <p>No study logs yet. Log your first study session!</p>
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <div class="empty-icon-calendar">
+                            <div class="calendar-dots">
+                                <div class="calendar-dot"></div>
+                                <div class="calendar-dot"></div>
+                                <div class="calendar-dot"></div>
+                                <div class="calendar-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="empty-state-title">Log Your First Study Session</h3>
+                    <p class="empty-state-description">Start tracking your learning journey by logging your study sessions and building consistent habits.</p>
+                    <button class="btn btn-primary empty-state-cta" onclick="document.getElementById('add-log-btn').click()">+ Log Study Session</button>
                 </div>
             `;
             return;
@@ -302,7 +414,7 @@ const UI = {
                 ${log.notes ? `<div class="log-notes">${this.escapeHtml(log.notes)}</div>` : ''}
                 
                 <div class="log-actions">
-                    <button class="btn btn-danger" onclick="App.deleteLog(${log.id})">Delete</button>
+                    <button class="btn btn-danger" onclick="App.deleteLog(${log.id})" aria-label="Delete log from ${this.formatDate(log.date)}">Delete</button>
                 </div>
             </div>
         `).join('');
@@ -355,6 +467,52 @@ const UI = {
         }
     },
     
+    showGlobalLoading(show) {
+        const loadingBar = document.getElementById('global-loading-bar');
+        const progress = loadingBar.querySelector('.global-loading-bar-progress');
+        const mainContent = document.querySelector('.app-main');
+        
+        if (show) {
+            API.loadingCounter++;
+            
+            if (API.loadingCounter === 1) {
+                loadingBar.classList.add('active');
+                loadingBar.setAttribute('aria-busy', 'true');
+                mainContent.classList.add('loading-blur');
+                
+                // Animate to 90% quickly
+                progress.style.width = '0%';
+                setTimeout(() => {
+                    progress.style.width = '90%';
+                }, 50);
+                
+                // Set indeterminate after 2 seconds
+                API.loadingTimeout = setTimeout(() => {
+                    loadingBar.classList.add('indeterminate');
+                    progress.style.width = '30%';
+                }, 2000);
+            }
+        } else {
+            API.loadingCounter = Math.max(0, API.loadingCounter - 1);
+            
+            if (API.loadingCounter === 0) {
+                clearTimeout(API.loadingTimeout);
+                loadingBar.classList.remove('indeterminate');
+                
+                // Complete to 100%
+                progress.style.width = '100%';
+                
+                // Hide after animation
+                setTimeout(() => {
+                    loadingBar.classList.remove('active');
+                    loadingBar.setAttribute('aria-busy', 'false');
+                    mainContent.classList.remove('loading-blur');
+                    progress.style.width = '0%';
+                }, 300);
+            }
+        }
+    },
+    
     showToast(message, type = 'info') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -372,12 +530,23 @@ const UI = {
     },
     
     formatDate(dateString) {
-        const options = { 
+        const date = new Date(dateString);
+        
+        const dateOptions = { 
             year: 'numeric', 
             month: 'short', 
             day: 'numeric' 
         };
-        return new Date(dateString).toLocaleDateString(undefined, options);
+        
+        const timeOptions = {
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        
+        const datePart = date.toLocaleDateString(undefined, dateOptions);
+        const timePart = date.toLocaleTimeString(undefined, timeOptions);
+        
+        return `${datePart} at ${timePart}`;
     },
     
     getStatusIcon(status) {
@@ -393,6 +562,73 @@ const UI = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+    
+    setFormLoading(form, submitBtn, isLoading) {
+        const formGroups = form.querySelectorAll('.form-group');
+        
+        if (isLoading) {
+            // Disable all form inputs
+            formGroups.forEach(group => {
+                group.classList.add('disabled');
+                const inputs = group.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    input.disabled = true;
+                    input.setAttribute('aria-busy', 'true');
+                });
+            });
+            
+            // Add loading state to submit button
+            submitBtn.classList.add('btn-loading');
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            
+            // Wrap button text and add spinner
+            const btnText = submitBtn.textContent;
+            submitBtn.innerHTML = `<span class="btn-text">${btnText}</span><span class="btn-spinner"></span>`;
+        } else {
+            // Re-enable all form inputs
+            formGroups.forEach(group => {
+                group.classList.remove('disabled');
+                const inputs = group.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    input.disabled = false;
+                    input.removeAttribute('aria-busy');
+                });
+            });
+            
+            // Remove loading state from submit button
+            submitBtn.classList.remove('btn-loading');
+            submitBtn.disabled = false;
+            submitBtn.removeAttribute('aria-busy');
+            
+            // Restore button text
+            const btnTextSpan = submitBtn.querySelector('.btn-text');
+            if (btnTextSpan) {
+                submitBtn.textContent = btnTextSpan.textContent;
+            }
+        }
+    },
+    
+    async showSuccessAnimation(submitBtn) {
+        return new Promise((resolve) => {
+            // Remove spinner
+            const spinner = submitBtn.querySelector('.btn-spinner');
+            if (spinner) {
+                spinner.remove();
+            }
+            
+            // Add success icon
+            const successIcon = document.createElement('span');
+            successIcon.className = 'btn-success-icon';
+            successIcon.textContent = '✓';
+            submitBtn.appendChild(successIcon);
+            
+            // Wait for animation to complete
+            setTimeout(() => {
+                resolve();
+            }, 500);
+        });
     }
 };
 
@@ -526,6 +762,8 @@ const App = {
         this.currentEditingSkill = null;
         document.getElementById('skill-modal-title').textContent = 'Add New Skill';
         document.getElementById('skill-form').reset();
+        FormValidator.resetForm('skill-form');
+        FormValidator.init('skill-form');
         UI.showModal('skill-modal');
     },
     
@@ -545,6 +783,14 @@ const App = {
             document.getElementById('skill-category').value = skill.category || '';
             document.getElementById('skill-status').value = skill.status;
             
+            FormValidator.resetForm('skill-form');
+            FormValidator.init('skill-form');
+            
+            // Trigger validation for pre-filled fields
+            const skillNameInput = document.getElementById('skill-name');
+            FormValidator.validateField(skillNameInput, 'skillName');
+            FormValidator.updateSubmitButton(document.getElementById('skill-form'));
+            
             UI.showModal('skill-modal');
         } catch (error) {
             console.error('Error loading skill for editing:', error);
@@ -554,20 +800,26 @@ const App = {
     async handleSkillSubmit(e) {
         e.preventDefault();
         
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        // Validate form
+        if (!FormValidator.validateForm('skill-form')) {
+            UI.showToast('Please fix the errors before submitting', 'error');
+            return;
+        }
+        
+        const formData = new FormData(form);
         const skillData = {
             name: formData.get('name').trim(),
             category: formData.get('category').trim(),
             status: formData.get('status')
         };
         
-        // Basic validation
-        if (!skillData.name) {
-            UI.showToast('Skill name is required', 'error');
-            return;
-        }
-        
         try {
+            // Show loading state
+            UI.setFormLoading(form, submitBtn, true);
+            
             if (this.currentEditingSkill) {
                 // Update existing skill
                 await API.skills.update(this.currentEditingSkill.id, skillData);
@@ -578,10 +830,14 @@ const App = {
                 UI.showToast('Skill added successfully', 'success');
             }
             
+            // Show success animation
+            await UI.showSuccessAnimation(submitBtn);
+            
             UI.hideModal('skill-modal');
             UI.loadSkills(); // Reload skills list
         } catch (error) {
             // Error already shown by API module
+            UI.setFormLoading(form, submitBtn, false);
         }
     },
     
@@ -604,16 +860,53 @@ const App = {
         await UI.populateSkillCheckboxes();
         document.getElementById('log-form').reset();
         this.setDefaultDate();
+        FormValidator.resetForm('log-form');
+        FormValidator.init('log-form');
+        
+        // Add time validation listeners
+        const timeInputs = ['log-hours', 'log-minutes', 'log-seconds'];
+        timeInputs.forEach(id => {
+            const input = document.getElementById(id);
+            input.addEventListener('input', () => {
+                FormValidator.validateTimeInputs(document.getElementById('log-form'));
+                FormValidator.updateSubmitButton(document.getElementById('log-form'));
+            });
+        });
+        
         UI.showModal('log-modal');
     },
     
     async handleLogSubmit(e) {
         e.preventDefault();
         
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        // Validate form
+        if (!FormValidator.validateForm('log-form')) {
+            UI.showToast('Please fix the errors before submitting', 'error');
+            return;
+        }
+        
+        // Validate time inputs
+        if (!FormValidator.validateTimeInputs(form)) {
+            UI.showToast('Please enter a valid study time', 'error');
+            return;
+        }
+        
+        const formData = new FormData(form);
+        
+        // Get time components
+        const hours = parseInt(formData.get('hours')) || 0;
+        const minutes = parseInt(formData.get('minutes')) || 0;
+        const seconds = parseInt(formData.get('seconds')) || 0;
+        
+        // Convert to total hours (decimal)
+        const totalHours = hours + (minutes / 60) + (seconds / 3600);
+        
         const logData = {
             date: formData.get('date'),
-            hours: parseFloat(formData.get('hours')),
+            hours: totalHours,
             notes: formData.get('notes').trim()
         };
         
@@ -621,20 +914,16 @@ const App = {
         const skillCheckboxes = document.querySelectorAll('#skill-checkboxes input[type="checkbox"]:checked');
         logData.skill_ids = Array.from(skillCheckboxes).map(cb => parseInt(cb.value));
         
-        // Basic validation
-        if (!logData.date) {
-            UI.showToast('Date is required', 'error');
-            return;
-        }
-        
-        if (!logData.hours || logData.hours <= 0) {
-            UI.showToast('Hours must be a positive number', 'error');
-            return;
-        }
-        
         try {
+            // Show loading state
+            UI.setFormLoading(form, submitBtn, true);
+            
             await API.logs.create(logData);
             UI.showToast('Study session logged successfully', 'success');
+            
+            // Show success animation
+            await UI.showSuccessAnimation(submitBtn);
+            
             UI.hideModal('log-modal');
             UI.loadLogs();
             
@@ -645,6 +934,7 @@ const App = {
             }
         } catch (error) {
             // Error already shown by API module
+            UI.setFormLoading(form, submitBtn, false);
         }
     },
     
